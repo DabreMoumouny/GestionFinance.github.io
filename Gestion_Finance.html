@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes Finances</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#8b5cf6',
+                        accent: '#06b6d4'
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-in-out',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                        'bounce-soft': 'bounceSoft 0.6s ease-in-out',
+                        'pulse-soft': 'pulseSoft 2s infinite'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes bounceSoft {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        @keyframes pulseSoft {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .dark .glass-effect {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .hover-lift {
+            transition: all 0.3s ease;
+        }
+        .hover-lift:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .dark .hover-lift:hover {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+        .progress-bar {
+            transition: width 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-white min-h-screen">
+    <div class="container mx-auto px-4 py-6 max-w-6xl">
+        <!-- Header -->
+        <div class="text-center mb-8 animate-fade-in">
+            <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-full mb-4 animate-bounce-soft">
+                <i class="fas fa-wallet text-white text-2xl"></i>
+            </div>
+            <h1 class="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
+                Mes Finances
+            </h1>
+            <p class="text-gray-600 dark:text-gray-400 font-medium">Gérez vos revenus, dépenses et économies en FCFA</p>
+            <div class="mt-4 text-sm text-gray-500 dark:text-gray-400">
+                <i class="fas fa-cloud-upload-alt mr-1"></i>
+                Données sauvegardées localement sur cet appareil
+            </div>
+        </div>
+
+        <!-- Contrôles de vue -->
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 animate-slide-up">
+            <div class="flex items-center gap-4">
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-1 border border-gray-200 dark:border-gray-600">
+                    <button id="cumulativeViewBtn" class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-primary text-white">
+                        Vue globale
+                    </button>
+                    <button id="monthlyViewBtn" class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
+                        Vue mensuelle
+                    </button>
+                </div>
+            </div>
+            <div id="monthNavigation" class="hidden items-center gap-3">
+                <button id="prevMonth" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center transition-colors duration-200">
+                    <i class="fas fa-chevron-left text-sm"></i>
+                </button>
+                <div id="currentMonthDisplay" class="px-4 py-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 font-medium min-w-40 text-center">
+                    Décembre 2024
+                </div>
+                <button id="nextMonth" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center transition-colors duration-200">
+                    <i class="fas fa-chevron-right text-sm"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Résumé financier -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/30 p-6 rounded-2xl border border-green-200 dark:border-green-700 hover-lift animate-slide-up">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="text-green-600 dark:text-green-400 text-sm font-semibold uppercase tracking-wide">Revenus</div>
+                    <i class="fas fa-arrow-up text-green-500 animate-pulse-soft"></i>
+                </div>
+                <div class="text-2xl font-bold text-green-700 dark:text-green-300" id="totalRevenus">0 FCFA</div>
+                <div class="text-xs text-green-600 dark:text-green-400 mt-1" id="revenusLabel">Total global</div>
+            </div>
+            <div class="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/30 p-6 rounded-2xl border border-red-200 dark:border-red-700 hover-lift animate-slide-up" style="animation-delay: 0.1s">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="text-red-600 dark:text-red-400 text-sm font-semibold uppercase tracking-wide">Dépenses</div>
+                    <i class="fas fa-arrow-down text-red-500 animate-pulse-soft"></i>
+                </div>
+                <div class="text-2xl font-bold text-red-700 dark:text-red-300" id="totalDepenses">0 FCFA</div>
+                <div class="text-xs text-red-600 dark:text-red-400 mt-1" id="depensesLabel">Total global</div>
+            </div>
+            <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/30 p-6 rounded-2xl border border-blue-200 dark:border-blue-700 hover-lift animate-slide-up" style="animation-delay: 0.2s">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="text-blue-600 dark:text-blue-400 text-sm font-semibold uppercase tracking-wide">Solde</div>
+                    <i class="fas fa-balance-scale text-blue-500 animate-pulse-soft"></i>
+                </div>
+                <div class="text-2xl font-bold text-blue-700 dark:text-blue-300" id="soldeTotal">0 FCFA</div>
+                <div class="text-xs text-blue-600 dark:text-blue-400 mt-1" id="soldeLabel">Total global</div>
+            </div>
+            <div class="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/30 p-6 rounded-2xl border border-purple-200 dark:border-purple-700 hover-lift animate-slide-up" style="animation-delay: 0.3s">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="text-purple-600 dark:text-purple-400 text-sm font-semibold uppercase tracking-wide">Économies</div>
+                    <i class="fas fa-piggy-bank text-purple-500 animate-pulse-soft"></i>
+                </div>
+                <div class="text-2xl font-bold text-purple-700 dark:text-purple-300" id="totalEconomies">0 FCFA</div>
+                <div class="text-xs text-purple-600 dark:text-purple-400 mt-1" id="economiesLabel">Total global</div>
+            </div>
+        </div>
+
+        <!-- Formulaire d'ajout -->
+        <div class="glass-effect rounded-2xl p-6 mb-8 hover-lift animate-slide-up" style="animation-delay: 0.4s">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center">
+                    <i class="fas fa-plus text-white"></i>
+                </div>
+                <h2 class="text-xl font-semibold">Ajouter une transaction</h2>
+            </div>
+            <form id="transactionForm" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="flex items-center gap-2 text-sm font-medium">
+                            <i class="fas fa-tag text-primary"></i>
+                            Type
+                        </label>
+                        <select id="typeTransaction" class="w-full p-4 text-base border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200 hover:border-primary/50">
+                            <option value="revenu">💰 Revenu</option>
+                            <option value="depense">💸 Dépense</option>
+                            <option value="economie">🎯 Économie</option>
+                        </select>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="flex items-center gap-2 text-sm font-medium">
+                            <i class="fas fa-coins text-primary"></i>
+                            Montant (FCFA)
+                        </label>
+                        <input type="number" id="montant" step="1" min="0" class="w-full p-4 text-base border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200 hover:border-primary/50" placeholder="0" required>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="flex items-center gap-2 text-sm font-medium">
+                            <i class="fas fa-list text-primary"></i>
+                            Catégorie
+                        </label>
+                        <select id="categorie" class="w-full p-4 text-base border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200 hover:border-primary/50">
+                            <!-- Options will be populated by JavaScript -->
+                        </select>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="flex items-center gap-2 text-sm font-medium">
+                            <i class="fas fa-calendar text-primary"></i>
+                            Date
+                        </label>
+                        <input type="date" id="dateTransaction" class="w-full p-4 text-base border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200 hover:border-primary/50" required>
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <label class="flex items-center gap-2 text-sm font-medium">
+                        <i class="fas fa-comment text-primary"></i>
+                        Description (optionnel)
+                    </label>
+                    <input type="text" id="description" class="w-full p-4 text-base border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200 hover:border-primary/50" placeholder="Description de la transaction">
+                </div>
+                <button type="submit" class="w-full bg-gradient-to-r from-primary to-secondary text-white py-4 px-6 rounded-xl font-semibold hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 text-base flex items-center justify-center gap-2">
+                    <i class="fas fa-check"></i>
+                    Ajouter la transaction
+                </button>
+            </form>
+        </div>
+
+        <!-- Objectifs d'épargne -->
+        <div class="glass-effect rounded-2xl p-6 mb-8 hover-lift animate-slide-up" style="animation-delay: 0.5s">
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
+                        <i class="fas fa-target text-white"></i>
+                    </div>
+                    <h2 class="text-xl font-semibold">Objectifs d'épargne</h2>
+                </div>
+                <button id="addGoalBtn" class="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:shadow-lg transition-all duration-200">
+                    <i class="fas fa-plus mr-1"></i>Ajouter un objectif
+                </button>
+            </div>
+            <div id="goalsList" class="space-y-4">
+                <div class="text-center text-gray-500 dark:text-gray-400 py-8">
+                    <i class="fas fa-bullseye text-4xl mb-4 opacity-50"></i>
+                    <p>Aucun objectif défini</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistiques mensuelles -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div class="glass-effect rounded-2xl p-6 hover-lift animate-slide-up" style="animation-delay: 0.6s">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 bg-gradient-to-br from-accent to-primary rounded-full flex items-center justify-center">
+                        <i class="fas fa-chart-pie text-white"></i>
+                    </div>
+                    <h2 class="text-xl font-semibold">Répartition par catégorie</h2>
+                </div>
+                <div class="h-64">
+                    <canvas id="categoriesChart"></canvas>
+                </div>
+            </div>
+            <div class="glass-effect rounded-2xl p-6 hover-lift animate-slide-up" style="animation-delay: 0.7s">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center">
+                        <i class="fas fa-chart-line text-white"></i>
+                    </div>
+                    <h2 class="text-xl font-semibold">Évolution mensuelle</h2>
+                </div>
+                <div class="h-64">
+                    <canvas id="monthlyChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Historique des transactions -->
+        <div class="glass-effect rounded-2xl p-6 hover-lift animate-slide-up" style="animation-delay: 0.8s">
+            <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-secondary to-accent rounded-full flex items-center justify-center">
+                        <i class="fas fa-history text-white"></i>
+                    </div>
+                    <h2 class="text-xl font-semibold">Transactions récentes</h2>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <select id="filterType" class="px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700">
+                        <option value="">Tous les types</option>
+                        <option value="revenu">Revenus</option>
+                        <option value="depense">Dépenses</option>
+                        <option value="economie">Économies</option>
+                    </select>
+                    <select id="sortOrder" class="px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700">
+                        <option value="date-desc">Plus récent</option>
+                        <option value="date-asc">Plus ancien</option>
+                        <option value="amount-desc">Montant ↓</option>
+                        <option value="amount-asc">Montant ↑</option>
+                    </select>
+                    <button id="exportBtn" class="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                        <i class="fas fa-download mr-1"></i>Export CSV
+                    </button>
+                    <button id="clearAll" class="text-red-500 hover:text-red-600 transition-colors duration-200 text-sm font-medium px-3 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20">
+                        <i class="fas fa-trash-alt mr-1"></i>Effacer tout
+                    </button>
+                </div>
+            </div>
+            <div id="transactionsList" class="space-y-3">
+                <div class="text-center text-gray-500 dark:text-gray-400 py-12">
+                    <i class="fas fa-inbox text-4xl mb-4 opacity-50"></i>
+                    <p>Aucune transaction enregistrée</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sauvegarde et synchronisation -->
+        <div class="glass-effect rounded-2xl p-6 mb-8 hover-lift animate-slide-up" style="animation-delay: 0.9s">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-full flex items-center justify-center">
+                    <i class="fas fa-sync-alt text-white"></i>
+                </div>
+                <h2 class="text-xl font-semibold">Sauvegarde & Synchronisation</h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button id="backupBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2">
+                    <i class="fas fa-download"></i>
+                    Exporter données
+                </button>
+                <label for="importFile" class="bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2 cursor-pointer">
+                    <i class="fas fa-upload"></i>
+                    Importer données
+                    <input type="file" id="importFile" accept=".json" class="hidden">
+                </label>
+                <button id="clearDataBtn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2">
+                    <i class="fas fa-trash-alt"></i>
+                    Effacer tout
+                </button>
+            </div>
+            <div class="mt-4 text-sm text-gray-600 dark:text-gray-400">
+                <p><i class="fas fa-info-circle mr-1"></i> <strong>Exporter</strong> : Télécharge vos données pour les sauvegarder ou les transférer</p>
+                <p><i class="fas fa-info-circle mr-1"></i> <strong>Importer</strong> : Charge des données précédemment exportées</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal pour objectifs -->
+    <div id="goalModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md animate-slide-up">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-semibold">Nouvel objectif d'épargne</h3>
+                <button id="closeModal" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="goalForm" class="space-y-4">
+                <div class="space-y-2">
+                    <label class="text-sm font-medium">Nom de l'objectif</label>
+                    <input type="text" id="goalName" class="w-full p-3 text-base border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700" placeholder="Ex: Nouveau téléphone" required>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-medium">Montant cible (FCFA)</label>
+                    <input type="number" id="goalAmount" step="1" min="1" class="w-full p-3 text-base border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700" placeholder="0" required>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-medium">Date limite</label>
+                    <input type="date" id="goalDate" class="w-full p-3 text-base border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700" required>
+                </div>
+                <button type="submit" class="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white py-3 px-6 rounded-xl font-semibold">
+                    Créer l'objectif
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Dark mode setup
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+
+        // Data storage
+        let transactions = [];
+        let goals = [];
+        let chart = null;
+        let monthlyChart = null;
+
+        // View state
+        let currentView = 'cumulative'; // 'cumulative' or 'monthly'
+        let currentMonth = new Date(); // Currently displayed month
+
+        // Categories
+        const categories = {
+            revenu: ['Salaire', 'Freelance', 'Investissements', 'Cadeaux', 'Autres revenus'],
+            depense: ['Alimentation', 'Transport', 'Logement', 'Santé', 'Loisirs', 'Shopping', 'Factures', 'Autres dépenses'],
+            economie: ['Épargne', 'Investissement', 'Retraite', 'Projet', 'Urgences']
+        };
+
+        // Data persistence with localStorage
+        function saveData() {
+            try {
+                const data = {
+                    transactions: transactions,
+                    goals: goals,
+                    lastSaved: new Date().toISOString()
+                };
+                localStorage.setItem('mesFinancesData', JSON.stringify(data));
+                console.log('✅ Données sauvegardées localement');
+                showNotification('Données sauvegardées !', 'success');
+            } catch (error) {
+                console.error('❌ Erreur sauvegarde:', error);
+                showNotification('Erreur de sauvegarde', 'error');
+            }
+        }
+
+        function loadData() {
+            try {
+                const saved = localStorage.getItem('mesFinancesData');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    transactions = data.transactions || [];
+                    goals = data.goals || [];
+                    console.log('✅ Données chargées:', { 
+                        transactions: transactions.length, 
+                        goals: goals.length,
+                        lastSaved: data.lastSaved
+                    });
+                    if (data.lastSaved) {
+                        showNotification(`Dernière sauvegarde : ${new Date(data.lastSaved).toLocaleString('fr-FR')}`, 'info');
+                    }
+                } else {
+                    console.log('📝 Aucune donnée sauvegardée trouvée');
+                }
+            } catch (error) {
+                console.error('❌ Erreur chargement:', error);
+                showNotification('Erreur de chargement des données', 'error');
+            }
+        }
+
+        function exportData() {
+            try {
+                const data = {
+                    transactions: transactions,
+                    goals: goals,
+                    exportDate: new Date().toISOString(),
+                    version: '1.0'
+                };
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `mes-finances-backup-${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
+                URL.revokeObjectURL(url);
+                showNotification('Données exportées !', 'success');
+            } catch (error) {
+                console.error('❌ Erreur export:', error);
+                showNotification('Erreur d\'export', 'error');
+            }
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.transactions && Array.isArray(data.transactions)) {
+                        if (confirm(`Importer ${data.transactions.length} transactions et ${(data.goals || []).length} objectifs ?\n\nCela remplacera vos données actuelles.`)) {
+                            transactions = data.transactions;
+                            goals = data.goals || [];
+                            saveData();
+                            updateDisplay();
+                            showNotification('Données importées avec succès !', 'success');
+                        }
+                    } else {
+                        showNotification('Fichier invalide', 'error');
+                    }
+                } catch (error) {
+                    console.error('❌ Erreur import:', error);
+                    showNotification('Erreur de lecture du fichier', 'error');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = ''; // Reset input
+        }
+
+        function clearAllData() {
+            if (confirm('⚠️ ATTENTION ⚠️\n\nCela effacera TOUTES vos données :\n• Toutes les transactions\n• Tous les objectifs\n• Toutes les sauvegardes\n\nÊtes-vous absolument sûr ?')) {
+                transactions = [];
+                goals = [];
+                localStorage.removeItem('mesFinancesData');
+                updateDisplay();
+                showNotification('Toutes les données ont été effacées', 'info');
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+            
+            // Set today's date
+            document.getElementById('dateTransaction').valueAsDate = new Date();
+            document.getElementById('goalDate').valueAsDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+            
+            // Update categories based on type
+            updateCategories();
+            
+            // Event listeners
+            document.getElementById('typeTransaction').addEventListener('change', updateCategories);
+            document.getElementById('transactionForm').addEventListener('submit', addTransaction);
+            document.getElementById('clearAll').addEventListener('click', clearAllTransactions);
+            document.getElementById('filterType').addEventListener('change', updateTransactionsList);
+            document.getElementById('sortOrder').addEventListener('change', updateTransactionsList);
+            document.getElementById('exportBtn').addEventListener('click', exportToCSV);
+            document.getElementById('addGoalBtn').addEventListener('click', () => {
+                document.getElementById('goalModal').classList.remove('hidden');
+            });
+            document.getElementById('closeModal').addEventListener('click', () => {
+                document.getElementById('goalModal').classList.add('hidden');
+            });
+            document.getElementById('goalForm').addEventListener('submit', addGoal);
+            
+            // View toggle listeners
+            document.getElementById('cumulativeViewBtn').addEventListener('click', () => switchView('cumulative'));
+            document.getElementById('monthlyViewBtn').addEventListener('click', () => switchView('monthly'));
+            document.getElementById('prevMonth').addEventListener('click', () => navigateMonth(-1));
+            document.getElementById('nextMonth').addEventListener('click', () => navigateMonth(1));
+            
+            // Backup/sync listeners
+            document.getElementById('backupBtn').addEventListener('click', exportData);
+            document.getElementById('importFile').addEventListener('change', importData);
+            document.getElementById('clearDataBtn').addEventListener('click', clearAllData);
+            
+            // Update current month display
+            updateMonthDisplay();
+            
+            // Initialize charts
+            initChart();
+            initMonthlyChart();
+            updateDisplay();
+        });
+
+        function updateCategories() {
+            const type = document.getElementById('typeTransaction').value;
+            const categorieSelect = document.getElementById('categorie');
+            
+            categorieSelect.innerHTML = '';
+            categories[type].forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = cat;
+                categorieSelect.appendChild(option);
+            });
+        }
+
+        function addTransaction(e) {
+            e.preventDefault();
+            
+            const transaction = {
+                id: Date.now(),
+                type: document.getElementById('typeTransaction').value,
+                montant: parseFloat(document.getElementById('montant').value),
+                categorie: document.getElementById('categorie').value,
+                date: document.getElementById('dateTransaction').value,
+                description: document.getElementById('description').value || '',
+                timestamp: new Date()
+            };
+            
+            transactions.unshift(transaction);
+            saveData();
+            
+            // Reset form
+            document.getElementById('transactionForm').reset();
+            document.getElementById('dateTransaction').valueAsDate = new Date();
+            updateCategories();
+            
+            updateDisplay();
+            
+            // Show success feedback
+            showNotification('Transaction ajoutée avec succès !', 'success');
+        }
+
+        function addGoal(e) {
+            e.preventDefault();
+            
+            const goal = {
+                id: Date.now(),
+                name: document.getElementById('goalName').value,
+                targetAmount: parseFloat(document.getElementById('goalAmount').value),
+                currentAmount: 0,
+                deadline: document.getElementById('goalDate').value,
+                createdAt: new Date()
+            };
+            
+            goals.push(goal);
+            saveData();
+            
+            // Reset form and close modal
+            document.getElementById('goalForm').reset();
+            document.getElementById('goalModal').classList.add('hidden');
+            document.getElementById('goalDate').valueAsDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+            
+            updateGoalsList();
+            showNotification('Objectif créé avec succès !', 'success');
+        }
+
+        function updateDisplay() {
+            updateTotals();
+            updateTransactionsList();
+            updateChart();
+            updateMonthlyChart();
+            updateGoalsList();
+        }
+
+        function updateTotals() {
+            // Get transactions based on current view
+            const viewTransactions = getFilteredTransactions();
+            
+            const totals = viewTransactions.reduce((acc, t) => {
+                if (t.type === 'revenu') acc.revenus += t.montant;
+                else if (t.type === 'depense') acc.depenses += t.montant;
+                else if (t.type === 'economie') acc.economies += t.montant;
+                return acc;
+            }, { revenus: 0, depenses: 0, economies: 0 });
+            
+            const solde = totals.revenus - totals.depenses;
+            
+            document.getElementById('totalRevenus').textContent = `${Math.round(totals.revenus).toLocaleString('fr-FR')} FCFA`;
+            document.getElementById('totalDepenses').textContent = `${Math.round(totals.depenses).toLocaleString('fr-FR')} FCFA`;
+            document.getElementById('soldeTotal').textContent = `${Math.round(solde).toLocaleString('fr-FR')} FCFA`;
+            document.getElementById('totalEconomies').textContent = `${Math.round(totals.economies).toLocaleString('fr-FR')} FCFA`;
+            
+            // Update labels based on view
+            const labelSuffix = currentView === 'cumulative' ? 'Total global' : 'Ce mois';
+            document.getElementById('revenusLabel').textContent = labelSuffix;
+            document.getElementById('depensesLabel').textContent = labelSuffix;
+            document.getElementById('soldeLabel').textContent = labelSuffix;
+            document.getElementById('economiesLabel').textContent = labelSuffix;
+            
+            // Update solde color
+            const soldeEl = document.getElementById('soldeTotal');
+            if (solde >= 0) {
+                soldeEl.className = 'text-2xl font-bold text-blue-700 dark:text-blue-300';
+            } else {
+                soldeEl.className = 'text-2xl font-bold text-red-700 dark:text-red-300';
+            }
+
+            // Update goals with current savings (always use total savings for goals)
+            const totalSavings = transactions.filter(t => t.type === 'economie').reduce((sum, t) => sum + t.montant, 0);
+            goals.forEach(goal => {
+                goal.currentAmount = Math.min(totalSavings, goal.targetAmount);
+            });
+        }
+
+        function updateTransactionsList() {
+            const container = document.getElementById('transactionsList');
+            const filterType = document.getElementById('filterType').value;
+            const sortOrder = document.getElementById('sortOrder').value;
+            
+            let filteredTransactions = [...transactions];
+            
+            // Apply filter
+            if (filterType) {
+                filteredTransactions = filteredTransactions.filter(t => t.type === filterType);
+            }
+            
+            // Apply sort
+            filteredTransactions.sort((a, b) => {
+                switch (sortOrder) {
+                    case 'date-asc':
+                        return new Date(a.date) - new Date(b.date);
+                    case 'date-desc':
+                        return new Date(b.date) - new Date(a.date);
+                    case 'amount-asc':
+                        return a.montant - b.montant;
+                    case 'amount-desc':
+                        return b.montant - a.montant;
+                    default:
+                        return new Date(b.date) - new Date(a.date);
+                }
+            });
+            
+            if (filteredTransactions.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-500 dark:text-gray-400 py-8">Aucune transaction trouvée</div>';
+                return;
+            }
+            
+            container.innerHTML = filteredTransactions.slice(0, 20).map((t, index) => `
+                <div class="flex items-center justify-between p-5 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 hover-lift animate-slide-up" style="animation-delay: ${index * 0.05}s">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center ${getTypeBgColor(t.type)}">
+                                <span class="text-lg">${getTypeEmoji(t.type)}</span>
+                            </div>
+                            <div>
+                                <span class="font-semibold text-gray-900 dark:text-white">${t.categorie}</span>
+                                <div class="text-sm text-gray-500 dark:text-gray-400">${formatDate(t.date)}</div>
+                            </div>
+                        </div>
+                        ${t.description ? `<div class="text-sm text-gray-600 dark:text-gray-400 ml-13">${t.description}</div>` : ''}
+                    </div>
+                    <div class="text-right">
+                        <div class="font-bold text-lg ${getAmountColor(t.type)}">${getAmountPrefix(t.type)}${Math.round(t.montant).toLocaleString('fr-FR')} FCFA</div>
+                        <button onclick="deleteTransaction(${t.id})" class="text-red-500 hover:text-red-600 text-sm mt-1 px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200">
+                            <i class="fas fa-trash-alt mr-1"></i>Supprimer
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateGoalsList() {
+            const container = document.getElementById('goalsList');
+            
+            if (goals.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-500 dark:text-gray-400 py-8"><i class="fas fa-bullseye text-4xl mb-4 opacity-50"></i><p>Aucun objectif défini</p></div>';
+                return;
+            }
+            
+            container.innerHTML = goals.map((goal, index) => {
+                const progress = (goal.currentAmount / goal.targetAmount) * 100;
+                const daysLeft = Math.ceil((new Date(goal.deadline) - new Date()) / (1000 * 60 * 60 * 24));
+                
+                return `
+                    <div class="bg-white dark:bg-gray-700 rounded-xl p-5 border border-gray-200 dark:border-gray-600 hover-lift animate-slide-up" style="animation-delay: ${index * 0.1}s">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="font-semibold text-gray-900 dark:text-white">${goal.name}</h4>
+                            <button onclick="deleteGoal(${goal.id})" class="text-red-500 hover:text-red-600 text-sm">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                        <div class="mb-3">
+                            <div class="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-1">
+                                <span>${Math.round(goal.currentAmount).toLocaleString('fr-FR')} FCFA</span>
+                                <span>${Math.round(goal.targetAmount).toLocaleString('fr-FR')} FCFA</span>
+                            </div>
+                            <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-3">
+                                <div class="progress-bar bg-gradient-to-r from-yellow-400 to-orange-500 h-3 rounded-full" style="width: ${Math.min(progress, 100)}%"></div>
+                            </div>
+                            <div class="text-center text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                ${Math.round(progress)}% • ${daysLeft > 0 ? `${daysLeft} jours restants` : 'Échéance dépassée'}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function exportToCSV() {
+            if (transactions.length === 0) {
+                showNotification('Aucune transaction à exporter', 'error');
+                return;
+            }
+            
+            const headers = ['Date', 'Type', 'Catégorie', 'Montant (FCFA)', 'Description'];
+            const csvContent = [
+                headers.join(','),
+                ...transactions.map(t => [
+                    t.date,
+                    t.type,
+                    t.categorie,
+                    t.montant,
+                    `"${t.description}"`
+                ].join(','))
+            ].join('\n');
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `transactions_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showNotification('Export CSV téléchargé !', 'success');
+        }
+
+        function getTypeEmoji(type) {
+            return { revenu: '💰', depense: '💸', economie: '🎯' }[type];
+        }
+
+        function getAmountColor(type) {
+            return {
+                revenu: 'text-green-600 dark:text-green-400',
+                depense: 'text-red-600 dark:text-red-400',
+                economie: 'text-purple-600 dark:text-purple-400'
+            }[type];
+        }
+
+        function getAmountPrefix(type) {
+            return type === 'depense' ? '-' : '+';
+        }
+
+        function getTypeBgColor(type) {
+            return {
+                revenu: 'bg-green-100 dark:bg-green-900/30',
+                depense: 'bg-red-100 dark:bg-red-900/30',
+                economie: 'bg-purple-100 dark:bg-purple-900/30'
+            }[type];
+        }
+
+        function formatDate(dateStr) {
+            return new Date(dateStr).toLocaleDateString('fr-FR');
+        }
+
+        function deleteTransaction(id) {
+            transactions = transactions.filter(t => t.id !== id);
+            saveData();
+            updateDisplay();
+            showNotification('Transaction supprimée', 'info');
+        }
+
+        function deleteGoal(id) {
+            goals = goals.filter(g => g.id !== id);
+            saveData();
+            updateGoalsList();
+            showNotification('Objectif supprimé', 'info');
+        }
+
+        function clearAllTransactions() {
+            if (confirm('Êtes-vous sûr de vouloir effacer toutes les transactions ?')) {
+                transactions = [];
+                saveData();
+                updateDisplay();
+                showNotification('Toutes les transactions ont été effacées', 'info');
+            }
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('categoriesChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        backgroundColor: [
+                            '#5D5CDE', '#10B981', '#F59E0B', '#EF4444', 
+                            '#8B5CF6', '#06B6D4', '#84CC16', '#F97316'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: document.documentElement.classList.contains('dark') ? '#fff' : '#000'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function initMonthlyChart() {
+            const ctx = document.getElementById('monthlyChart').getContext('2d');
+            monthlyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Revenus',
+                        data: [],
+                        borderColor: '#10B981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4
+                    }, {
+                        label: 'Dépenses',
+                        data: [],
+                        borderColor: '#EF4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: document.documentElement.classList.contains('dark') ? '#fff' : '#000'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: document.documentElement.classList.contains('dark') ? '#374151' : '#E5E7EB'
+                            },
+                            ticks: {
+                                color: document.documentElement.classList.contains('dark') ? '#fff' : '#000'
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: document.documentElement.classList.contains('dark') ? '#374151' : '#E5E7EB'
+                            },
+                            ticks: {
+                                color: document.documentElement.classList.contains('dark') ? '#fff' : '#000'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChart() {
+            const categoryTotals = transactions.reduce((acc, t) => {
+                acc[t.categorie] = (acc[t.categorie] || 0) + t.montant;
+                return acc;
+            }, {});
+            
+            chart.data.labels = Object.keys(categoryTotals);
+            chart.data.datasets[0].data = Object.values(categoryTotals);
+            chart.update();
+        }
+
+        function updateMonthlyChart() {
+            // Get last 6 months
+            const months = [];
+            const revenus = [];
+            const depenses = [];
+            
+            for (let i = 5; i >= 0; i--) {
+                const date = new Date();
+                date.setMonth(date.getMonth() - i);
+                const monthKey = date.toISOString().slice(0, 7); // YYYY-MM
+                months.push(date.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }));
+                
+                const monthTransactions = transactions.filter(t => t.date.startsWith(monthKey));
+                const monthRevenus = monthTransactions.filter(t => t.type === 'revenu').reduce((sum, t) => sum + t.montant, 0);
+                const monthDepenses = monthTransactions.filter(t => t.type === 'depense').reduce((sum, t) => sum + t.montant, 0);
+                
+                revenus.push(monthRevenus);
+                depenses.push(monthDepenses);
+            }
+            
+            monthlyChart.data.labels = months;
+            monthlyChart.data.datasets[0].data = revenus;
+            monthlyChart.data.datasets[1].data = depenses;
+            monthlyChart.update();
+        }
+
+        // View management functions
+        function switchView(view) {
+            currentView = view;
+            
+            // Update button styles
+            const cumulativeBtn = document.getElementById('cumulativeViewBtn');
+            const monthlyBtn = document.getElementById('monthlyViewBtn');
+            const monthNav = document.getElementById('monthNavigation');
+            
+            if (view === 'cumulative') {
+                cumulativeBtn.className = 'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-primary text-white';
+                monthlyBtn.className = 'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white';
+                monthNav.classList.add('hidden');
+            } else {
+                monthlyBtn.className = 'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-primary text-white';
+                cumulativeBtn.className = 'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white';
+                monthNav.classList.remove('hidden');
+                monthNav.classList.add('flex');
+            }
+            
+            updateDisplay();
+        }
+
+        function navigateMonth(direction) {
+            currentMonth.setMonth(currentMonth.getMonth() + direction);
+            updateMonthDisplay();
+            updateDisplay();
+        }
+
+        function updateMonthDisplay() {
+            const monthDisplay = document.getElementById('currentMonthDisplay');
+            monthDisplay.textContent = currentMonth.toLocaleDateString('fr-FR', { 
+                month: 'long', 
+                year: 'numeric' 
+            });
+        }
+
+        function getFilteredTransactions() {
+            if (currentView === 'cumulative') {
+                return transactions;
+            } else {
+                const monthKey = currentMonth.toISOString().slice(0, 7); // YYYY-MM
+                return transactions.filter(t => t.date.startsWith(monthKey));
+            }
+        }
+
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-all duration-300 ${
+                type === 'success' ? 'bg-green-500' : 
+                type === 'error' ? 'bg-red-500' : 'bg-blue-500'
+            } text-white`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => {
+                    if (document.body.contains(notification)) {
+                        document.body.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
